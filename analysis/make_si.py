@@ -164,6 +164,97 @@ def llm_tables():
     return t1, t2
 
 
+# ---------------------------------------------------------------- added after internal review
+SITE_LAB = {"NIH-CC": "NIH (US)", "CheXpert-US": "CheXpert (US)", "Indiana-US": "Open-I (US)",
+            "Shenzhen-CN": "Shenzhen (CN)", "Montgomery-US": "Montgomery (US)", "NODE21-jsrt": "JSRT (JP)",
+            "NODE21-padchest": "PadChest (ES)"}
+
+
+def characteristics():
+    """Per-site characteristics of included real images (CLAIM item 36), from provider metadata where available."""
+    m = pd.read_csv(ROOT / "data/meta/images.csv", dtype=str, keep_default_na=False)
+    r = m[(m.cls == "real") & (m.exclude == "") & m.site.isin(SITE_LAB)].copy()
+    ex = r.extra.map(lambda e: json.loads(e) if e.startswith("{") else {})
+    r["age"] = pd.to_numeric(ex.map(lambda e: e.get("age")), errors="coerce")
+    r["sex"] = ex.map(lambda e: str(e.get("sex", ""))[:1].upper())
+    imp = ex.map(lambda e: str(e.get("impression", "")).lower())
+    r["normal"] = None
+    r.loc[r.source == "nih", "normal"] = ex[r.source == "nih"].map(lambda e: e.get("findings") == "No Finding")
+    oc = r.source.isin(["openi", "chexpert"])
+    r.loc[oc, "normal"] = imp[oc].str.contains("normal") | imp[oc].str.contains("no acute")
+    tb = r.source.isin(["shenzhen", "montgomery"])
+    r.loc[tb, "normal"] = ex[tb].map(lambda e: e.get("tb") == 0)
+    r.loc[r.source == "node21", "normal"] = False
+    # NLM tuberculosis sets: sex and age from the provider's clinical readings
+    for i in r.index[tb]:
+        stem = Path(r.at[i, "raw_path"]).stem
+        f = next((ROOT / "data/raw" / r.at[i, "source"]).rglob(f"{stem}.txt"), None)
+        if f is None:
+            continue
+        t = f.read_text(errors="ignore")
+        sx = re.search(r"\b(female|male)\b|Sex:\s*([MF])", t, re.I)
+        ag = re.search(r"(\d+)\s*yrs|Age:\s*0*(\d+)Y", t, re.I)
+        if sx:
+            r.at[i, "sex"] = (sx.group(1) or sx.group(2))[0].upper()
+        if ag:
+            r.at[i, "age"] = float(ag.group(1) or ag.group(2))
+    rows = []
+    for site, g in r.groupby("site"):
+        a = g.age.dropna()
+        sx = g.sex[g.sex.isin(["F", "M"])]
+        rows.append([SITE_LAB[site], f"{len(g):,}", f"{g.patient_id.nunique():,}",
+                     f"{100 * (sx == 'F').mean():.0f}" if len(sx) else "n.r.",
+                     f"{a.median():.0f} ({a.quantile(.25):.0f}--{a.quantile(.75):.0f})" if len(a) else "n.r.",
+                     f"{100 * (g.view == 'AP').mean():.0f}", f"{100 * (1 - g.normal.astype(bool).mean()):.0f}"])
+    order = list(SITE_LAB.values())
+    rows.sort(key=lambda x: order.index(x[0]))
+    return table("Characteristics of the included real radiographs by site. Female sex and age are reported by the data "
+                 "providers (n.r., not reported). Abnormal: NIH any label other than No Finding; Open-I and CheXpert "
+                 "impression without `normal' or `no acute' (keyword proxy); Shenzhen and Montgomery tuberculosis "
+                 "label; JSRT and PadChest entered through NODE21 as nodule cases only. Splits are given in Table 1 of "
+                 "the main text.", "tab:si_char",
+                 ["Site", "Images", "Patients", "Female (\\%)", "Age, median (IQR)", "AP view (\\%)", "Abnormal (\\%)"],
+                 rows, size=r"\scriptsize")
+
+
+def site_observed():
+    t = pd.read_csv(T / "h1_site_observed.csv")
+    lab = {"chexpert": "CheXpert", "nih": "NIH", "openi": "Open-I", "shenzhen": "Shenzhen", "jsrt": "JSRT",
+           "padchest": "PadChest"}
+    fams = ["mlp", "mlp_lbr", "resnet", "knn", "format", "ocsvm", "fft"]
+    rows = []
+    for s in lab:
+        r = [lab[s]]
+        for f in fams:
+            x = t[(t.family == f) & (t.site == s)].iloc[0]
+            r.append(f"{x['0']:.1f} / {x['1']:.1f}")
+        rows.append(r)
+    pos = [int(((t.family == f) & (t.delta > 0)).sum()) for f in fams]
+    rows.append(["Sites with increase"] + [f"{p} of 6" for p in pos])
+    return table("Observed false-positive rate (\\%) on real test radiographs when the site was seen / unseen in "
+                 "training, pooled over configurations, encoders and seeds (no model). Montgomery is omitted because it "
+                 "was never seen.", "tab:si_siteobs", ["Site"] + [FAM[f] for f in fams], rows,
+                 size=r"\scriptsize", fit=True)
+
+
+def normals_table():
+    f = M / "h1_normals_contrasts.csv"
+    if not f.exists():
+        return ""
+    d = pd.read_csv(f).set_index("family")
+    p = pd.read_csv(M / "h1_cells_contrasts.csv").set_index("family")
+    summ = (M / "h1_normals_summary.txt").read_text()
+    mt = re.search(r"max Rhat ([\d.]+) \| min bulk ESS (\d+) \| min tail ESS (\d+) \| divergences (\d+)", summ)
+    rows = [[FAM[f], ci(*p.loc[f, ["delta_pp_med", "delta_pp_lo95", "delta_pp_hi95"]]),
+             ci(*d.loc[f, ["delta_pp_med", "delta_pp_lo95", "delta_pp_hi95"]])] for f in FAM_ORDER if f in d.index]
+    return table("Exploratory (added after the main analyses, not preregistered): H1 restricted to real radiographs without reported "
+                 "disease (NIH No Finding, Open-I and CheXpert normal impressions, Shenzhen and Montgomery TB-negative; "
+                 "JSRT and PadChest excluded). Same model as the primary analysis"
+                 + (f" (max $\\hat R$ {mt.group(1)}, min ESS {mt.group(2)}, {mt.group(4)} divergences)" if mt else "")
+                 + ". $\\Delta$FPR in percentage points with 95\\% CrI.", "tab:si_normals",
+                 ["Family", "All real radiographs (primary)", "Without reported disease"], rows)
+
+
 def main():
     FIG.mkdir(exist_ok=True)
     montage()
@@ -214,6 +305,8 @@ def main():
          "Retraining ResNet-18 on each image variant was beyond the compute budget"],
         ["Exploratory model", "--", "Family-specific hospital effects (labelled exploratory)",
          "Added after the H1 posterior predictive check fitted 49/91 cells"],
+        ["Disease-free analysis", "--", "H1 restricted to radiographs without reported disease (5 sites)",
+         "Added after the main analyses to separate disease mix from acquisition; labelled exploratory"],
         ["Reason coding", "Two coders on 10\\% of LLM reasons", "Not done", "Single-author study; deferred"],
     ]
     t_dev = table("Deviations from the preregistration (OSF 5vwkj).", "tab:si_dev",
@@ -286,6 +379,9 @@ S1 PA views only; S2 upper 20\% and 8\% border masked; S3 JPEG (quality 90) befo
 {t_h4}
 {t_h4b}
 {t_rob}
+{characteristics()}
+{site_observed()}
+{normals_table()}
 \clearpage
 \section{{Multimodal LLM evaluation}}\label{{sec:llm}}
 \subsection*{{Prompt (version detect-v3, frozen 9 November 2026)}}
