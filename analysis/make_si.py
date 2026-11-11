@@ -265,7 +265,7 @@ def main():
 \tableofcontents
 
 \section{{Preregistration deviations}}
-The study was preregistered on the Open Science Framework (\texttt{{https://osf.io/5vwkj}}). Table~\ref{{tab:si_dev}} lists every departure from the registered plan.
+The study was preregistered on the Open Science Framework (\texttt{{https://doi.org/10.17605/OSF.IO/5VWKJ}}). Table~\ref{{tab:si_dev}} lists every departure from the registered plan.
 {t_dev}
 \clearpage
 \section{{Model diagnostics and checks}}

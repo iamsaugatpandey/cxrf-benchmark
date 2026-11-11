@@ -2,7 +2,7 @@
 
 Code for the preregistered benchmark *"Detecting AI-generated chest radiographs across hospitals and generators: a multi-institution benchmark"* (Saugat Pandey, Furman University).
 
-- **Preregistration:** Open Science Framework, https://osf.io/5vwkj (registered 9 November 2026)
+- **Preregistration:** Open Science Framework, https://doi.org/10.17605/OSF.IO/5VWKJ (registered 9 November 2026)
 - **Paper:** under review. A citation will be added on publication.
 
 ## What the study does
@@ -46,7 +46,7 @@ No images are included. The real radiographs come from public datasets. Download
 
 ## Large files on Zenodo
 
-Files too large for GitHub are archived on Zenodo: **DOI: 10.5281/zenodo.24144502** (https://doi.org/10.5281/zenodo.24144502). The archive contains:
+Files too large for GitHub are archived on Zenodo: **DOI: 10.5281/zenodo.24144501** (https://doi.org/10.5281/zenodo.24144501; this DOI always resolves to the latest version). The archive contains:
 
 | File | Contents |
 |---|---|
