@@ -1,0 +1,17 @@
+# never commit data, keys, images or large artifacts
+data/
+.env
+.venv/
+*.npy
+*.npz
+*.parquet
+*.rds
+*.png
+*.jpg
+*.zip
+*.tgz
+__pycache__/
+*.egg-info/
+.DS_Store
+logs/
+figures/out/

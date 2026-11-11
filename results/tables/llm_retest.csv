@@ -1,0 +1,7 @@
+model,n_images,kappa_mean,kappa_min,agreement_pct,within_image_sd,icc_like_r
+claude-haiku-5-5,403,0.552,0.495,99.173,0.445,0.721
+claude-opus-5-5,403,0.841,0.762,99.007,1.386,0.835
+gemini-3.1-flash-lite,403,0.243,0.174,72.87,16.194,0.283
+gemini-4-argon,403,0.553,0.51,79.653,16.554,0.454
+gpt-5.4-mini,403,0.324,0.108,97.353,4.777,0.448
+gpt-6-astra,403,0.447,0.409,94.706,3.007,0.614

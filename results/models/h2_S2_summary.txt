@@ -1,0 +1,60 @@
+ Family: betabinom2 
+  Links: mu = logit; phi = identity 
+Formula: k | vint(n) ~ 1 + family * novelty + (1 + novelty | generator) + (1 | config_seed) 
+   Data: d (Number of observations: 2280) 
+  Draws: 4 chains, each with iter = 4000; warmup = 1000; thin = 1;
+         total post-warmup draws = 12000
+
+Multilevel Hyperparameters:
+~config_seed (Number of levels: 570) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     1.05      0.04     0.97     1.13 1.00     3602     5972
+
+~generator (Number of levels: 4) 
+                       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+sd(Intercept)              1.98      0.57     0.92     3.18 1.00     7963
+sd(novelty)                1.10      0.46     0.41     2.18 1.00     9663
+cor(Intercept,novelty)    -0.27      0.37    -0.82     0.54 1.00    10446
+                       Tail_ESS
+sd(Intercept)              5214
+sd(novelty)                8719
+cor(Intercept,novelty)     9017
+
+Regression Coefficients:
+                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+Intercept                 0.78      1.26    -1.78     3.18 1.00     5504
+familyfft                -0.31      0.37    -1.02     0.42 1.00     6617
+familyformat             -3.76      0.32    -4.38    -3.14 1.00     5246
+familyknn                -1.61      0.22    -2.04    -1.18 1.00     5012
+familymlp_lbr             0.11      0.15    -0.18     0.40 1.00     4897
+familyocsvm              -6.98      0.24    -7.45    -6.53 1.00     6304
+novelty                  -2.23      0.85    -3.69    -0.39 1.00     7822
+familyfft:novelty        -0.75      0.33    -1.43    -0.13 1.00    15462
+familyformat:novelty      3.23      0.25     2.73     3.71 1.00    16396
+familyknn:novelty         0.90      0.17     0.56     1.23 1.00    15311
+familymlp_lbr:novelty     0.41      0.12     0.17     0.65 1.00    14413
+familyocsvm:novelty       3.80      0.24     3.32     4.27 1.00    13087
+                      Tail_ESS
+Intercept                 5224
+familyfft                 8508
+familyformat              7242
+familyknn                 7301
+familymlp_lbr             7560
+familyocsvm               8149
+novelty                   8550
+familyfft:novelty         9904
+familyformat:novelty     10083
+familyknn:novelty         9905
+familymlp_lbr:novelty    10034
+familyocsvm:novelty      10240
+
+Further Distributional Parameters:
+    Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+phi     9.98      0.50     9.02    10.99 1.00     8115     9157
+
+Draws were sampled using sample(hmc). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).
+
+max Rhat 1.0013 | min bulk ESS 3602 | min tail ESS 5197 | divergences 0
+criteria met: TRUE 
