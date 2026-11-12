@@ -29,7 +29,7 @@ pa <- ggplot(dr, aes(x = delta_pp, y = fam)) +
   scale_x_continuous("Change in false-positive rate, unseen − seen hospital (percentage points)",
                      expand = expansion(mult = c(0.01, 0.03))) +
   scale_y_discrete(NULL, expand = expansion(add = c(0.3, 1.1))) +
-  coord_cartesian(xlim = c(-2, xmax_a)) +
+  coord_cartesian(xlim = c(-5, xmax_a)) +
   labs(tag = "a", title = "False-positive rates were higher at hospitals absent from training",
        subtitle = "Population-level posterior; point = median, bars = 66% and 95% CrI") +
   theme_cxrf()
@@ -44,18 +44,27 @@ long <- as_tibble(sd$nd) |> mutate(col = row_number()) |>
   mutate(fam = factor(fam_lab[family], levels = rev(fam_lab[ord])),
          site = factor(site_lab[site], levels = rev(site_lab)),
          nov = factor(ifelse(novelty_site == 1, "unseen", "seen"), levels = c("seen", "unseen")))
+# Observed rates (pooled over views, configurations and seeds) as open circles; 0% drawn at the left edge.
+obs <- arrow::read_parquet("data/analysis/reals_cells.parquet") |>
+  group_by(family, site, novelty_site) |> summarise(k = sum(k), n = sum(n), .groups = "drop") |>
+  mutate(obs = pmax(100 * k / n, 0.06),
+         fam = factor(fam_lab[family], levels = rev(fam_lab[ord])),
+         site = factor(site_lab[site], levels = rev(site_lab)),
+         nov = factor(ifelse(novelty_site == 1, "unseen", "seen"), levels = c("seen", "unseen")))
 pb <- ggplot(long, aes(y = site, x = med, colour = nov)) +
   geom_vline(xintercept = 1, linetype = "22", colour = cxrf_pal$ink2, linewidth = 0.3) +
   geom_linerange(aes(xmin = lo95, xmax = hi95), linewidth = 0.4, position = position_dodge(width = 0.6)) +
   geom_linerange(aes(xmin = lo66, xmax = hi66), linewidth = 1.1, position = position_dodge(width = 0.6)) +
   geom_point(size = 0.9, position = position_dodge(width = 0.6)) +
+  geom_point(data = obs, aes(x = obs), shape = 1, size = 1.3, stroke = 0.35,
+             position = position_dodge(width = 0.6)) +
   scale_colour_manual(NULL, values = c(seen = cxrf_pal$seen, unseen = cxrf_pal$unseen)) +
   scale_x_log10("False-positive rate on real test images (%, log scale)", breaks = c(0.1, 1, 10, 100),
                 labels = c("0.1", "1", "10", "100")) +
   coord_cartesian(xlim = c(0.05, 100)) +
   facet_wrap(~fam, ncol = 4) + scale_y_discrete(NULL) +
   labs(tag = "b", title = "The increase varied by hospital and detector family",
-       subtitle = "Blue: hospital seen in training; red: unseen. Dashed line: the 1% target set on seen-hospital validation images") +
+       subtitle = "Blue: hospital seen in training; red: unseen. Filled: model estimate; open circle: observed rate. Dashed line: 1% target") +
   theme_cxrf(grid_x = TRUE) + theme(panel.spacing.x = unit(6, "pt"))
 
 fig <- pa / pb + plot_layout(heights = c(1, 1.55))
